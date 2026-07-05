@@ -1,0 +1,1106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bago City College — Notes Exchange</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,400..600&family=Work+Sans:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<style>
+  :root{
+    --paper:#EFF1E6;
+    --paper-card:#F8F6EE;
+    --ink:#20261F;
+    --ink-soft:#535C4C;
+    --forest:#1F4B3F;
+    --forest-dark:#163A30;
+    --gold:#C99A2E;
+    --gold-soft:#E7CD82;
+    --rule:#7A93A8;
+    --line:#D9D4C2;
+    --shadow: 0 6px 18px rgba(32,38,31,0.10);
+    --radius: 3px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Work Sans', sans-serif;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,.display{
+    font-family:'Fraunces', serif;
+    font-weight:600;
+    letter-spacing:-0.01em;
+    margin:0;
+  }
+  .mono{font-family:'Space Mono', monospace;}
+  a{color:inherit;}
+  button{font-family:inherit;cursor:pointer;}
+  :focus-visible{outline:2px solid var(--gold); outline-offset:2px;}
+
+  /* ---------- layout shell ---------- */
+  .site-header{
+    background:var(--forest);
+    border-bottom:3px solid var(--gold);
+    color:#F3EFE1;
+  }
+  .header-inner{
+    max-width:1120px;margin:0 auto;padding:16px 24px;
+    display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;
+  }
+  .brand{display:flex;align-items:center;gap:12px;}
+  .seal{
+    width:42px;height:42px;border-radius:50%;
+    border:2px solid var(--gold-soft);
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Fraunces',serif;font-weight:600;font-size:15px;color:var(--gold-soft);
+    flex-shrink:0;
+  }
+  .brand-text .school-name{font-size:17px;font-weight:600;font-family:'Fraunces',serif;}
+  .brand-text .school-sub{font-size:11px;letter-spacing:.06em;color:var(--gold-soft);text-transform:uppercase;}
+  .est{font-size:11px;color:#B9C7BE;opacity:.85;}
+  nav{display:flex;gap:22px;align-items:center;flex-wrap:wrap;}
+  nav button.navlink{
+    background:none;border:none;color:#EFEAD8;font-size:14px;font-weight:500;
+    padding:6px 2px;border-bottom:2px solid transparent;transition:border-color .15s ease, color .15s ease;
+  }
+  nav button.navlink:hover{color:var(--gold-soft);}
+  nav button.navlink.active{border-bottom-color:var(--gold);color:#fff;}
+
+  main{max-width:1120px;margin:0 auto;padding:0 24px 80px;}
+
+  /* ---------- hero ---------- */
+  .hero{
+    position:relative;
+    padding:64px 0 40px;
+    background-image: repeating-linear-gradient(to bottom, transparent 0 37px, var(--line) 37px 38px);
+  }
+  .hero-grid{display:grid;grid-template-columns:1.15fr 0.85fr;gap:40px;align-items:center;}
+  .hero h1{font-size:clamp(32px,4.4vw,52px);line-height:1.08;max-width:11ch;}
+  .hero h1 em{font-style:italic;color:var(--forest);}
+  .hero p.lede{margin:18px 0 26px;color:var(--ink-soft);font-size:16.5px;max-width:40ch;}
+  .hero-actions{display:flex;gap:12px;flex-wrap:wrap;}
+
+  .btn{
+    display:inline-flex;align-items:center;gap:8px;
+    padding:12px 20px;border-radius:var(--radius);font-size:14.5px;font-weight:600;
+    border:1.5px solid transparent;transition:transform .12s ease, box-shadow .12s ease;
+  }
+  .btn-primary{background:var(--gold);color:var(--forest-dark);}
+  .btn-primary:hover{transform:translateY(-1px);box-shadow:var(--shadow);}
+  .btn-ghost{background:transparent;border-color:var(--forest);color:var(--forest);}
+  .btn-ghost:hover{background:var(--forest);color:#fff;}
+
+  /* fanned card stack */
+  .stack{position:relative;height:230px;}
+  .stack .mini-card{
+    position:absolute;top:0;left:50%;width:200px;min-height:150px;
+    background:var(--paper-card);border:1px solid var(--line);border-radius:var(--radius);
+    box-shadow:var(--shadow); padding:16px 16px 14px;
+  }
+  .stack .mini-card:nth-child(1){transform:translate(-70%,6%) rotate(-9deg);z-index:1;}
+  .stack .mini-card:nth-child(2){transform:translate(-46%,0%) rotate(3deg);z-index:2;}
+  .stack .mini-card:nth-child(3){transform:translate(-20%,10%) rotate(11deg);z-index:1;}
+  .stack .tag{font-family:'Space Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.05em;}
+  .stack .mini-card h4{font-size:13.5px;margin:6px 0 4px;line-height:1.3;}
+  .stack .mini-card .lines{margin-top:10px;}
+  .stack .mini-card .lines span{display:block;height:6px;background:var(--line);border-radius:2px;margin-bottom:6px;}
+  .stack .mini-card .lines span:nth-child(2){width:80%;}
+  .stack .mini-card .lines span:nth-child(3){width:55%;}
+
+  /* ---------- search + filters ---------- */
+  .toolbar{
+    display:flex;justify-content:space-between;align-items:flex-end;gap:20px;flex-wrap:wrap;
+    margin:8px 0 0;
+  }
+  .search-wrap{flex:1;min-width:220px;max-width:420px;}
+  .search-wrap label{font-family:'Space Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-soft);display:block;margin-bottom:6px;}
+  .search-wrap input{
+    width:100%;padding:10px 14px;border:1.5px solid var(--forest);border-radius:var(--radius);
+    background:var(--paper-card);font-family:'Work Sans';font-size:14.5px;color:var(--ink);
+  }
+  .search-wrap input::placeholder{color:#9aa298;}
+
+  .filter-block{margin-top:22px;}
+  .filters-toggle{
+    display:inline-flex;align-items:center;gap:8px;background:var(--paper-card);
+    border:1.5px solid var(--forest);color:var(--forest);font-weight:600;font-size:13.5px;
+    padding:10px 16px;border-radius:var(--radius);
+  }
+  .filters-toggle .chevron{transition:transform .2s ease;display:inline-block;}
+  .filters-toggle.open .chevron{transform:rotate(180deg);}
+  .filters-panel{
+    max-height:0;overflow:hidden;transition:max-height .28s ease;
+  }
+  .filters-panel.open{max-height:900px;}
+  .filters-panel-inner{
+    background:var(--paper-card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:20px 22px 4px;margin-top:14px;
+  }
+  .filters-panel-inner .filter-block:first-child{margin-top:0;}
+  .filter-label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-soft);margin-bottom:8px;}
+  .tabs{
+    display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;
+    -ms-overflow-style:none;scrollbar-width:thin;
+  }
+  .tab{
+    flex-shrink:0;
+    position:relative;
+    padding:10px 18px 10px 16px;
+    font-family:'Space Mono',monospace;font-size:12px;letter-spacing:.03em;
+    color:#fff;border:none;
+    clip-path: polygon(8% 0, 100% 0, 92% 100%, 0% 100%);
+    opacity:.72; transition:opacity .15s ease, transform .12s ease;
+  }
+  .tab:hover{opacity:.92;}
+  .tab.active{opacity:1;transform:translateY(-3px);box-shadow:var(--shadow);}
+  .tab .count{opacity:.75;margin-left:6px;}
+  .sort-select{
+    max-width:230px;padding:9px 10px;border:1.3px solid var(--line);border-radius:var(--radius);
+    background:#fff;font-family:'Work Sans';font-size:13.5px;color:var(--ink);
+  }
+
+  /* ---------- notes grid ---------- */
+  .grid{
+    display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:20px;
+  }
+  .note-card{
+    background:var(--paper-card);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:0;
+    box-shadow:var(--shadow);
+    display:flex;flex-direction:column;
+    position:relative;overflow:hidden;
+    transition:transform .15s ease, box-shadow .15s ease;
+  }
+  .note-card:hover{transform:translateY(-3px);box-shadow:0 10px 26px rgba(32,38,31,0.15);}
+  .note-card .strip{height:7px;width:100%;}
+  .note-card .body{padding:18px 20px 20px;display:flex;flex-direction:column;gap:10px;flex:1;}
+  .tag-row{display:flex;gap:6px;flex-wrap:wrap;}
+  .note-card .subject-tag{
+    font-family:'Space Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:#fff;
+    padding:3px 8px;border-radius:2px;display:inline-block;width:fit-content;
+  }
+  .note-card h3{font-size:18px;line-height:1.28;}
+  .note-card .snippet{color:var(--ink-soft);font-size:13.8px;flex:1;
+    display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
+  .note-card .meta{
+    font-family:'Space Mono',monospace;font-size:11px;color:#8a9184;
+    display:flex;justify-content:space-between;border-top:1px dashed var(--line);padding-top:10px;
+  }
+  .stats-row{display:flex;gap:14px;font-family:'Space Mono',monospace;font-size:11px;color:#8a9184;}
+  .card-actions{display:flex;gap:14px;flex-wrap:wrap;align-items:center;}
+  .open-btn, .like-btn, .download-btn{
+    background:none;border:none;color:var(--forest);font-weight:600;font-size:13px;
+    padding:0;text-decoration:underline;text-decoration-color:var(--gold-soft);text-underline-offset:3px;
+  }
+  .delete-btn{
+    background:none;border:none;color:#8B4226;font-weight:600;font-size:13px;
+    padding:0;text-decoration:underline;text-decoration-color:#D9B79A;text-underline-offset:3px;
+    margin-left:auto;
+  }
+
+  .empty-state{
+    grid-column:1/-1;text-align:center;padding:60px 20px;color:var(--ink-soft);
+    border:1.5px dashed var(--line);border-radius:var(--radius);
+  }
+  .empty-state h3{font-size:20px;margin-bottom:8px;color:var(--ink);}
+
+  /* ---------- share section ---------- */
+  .share-section{margin-top:80px;padding-top:40px;border-top:1px solid var(--line);}
+  .share-grid{display:grid;grid-template-columns:0.9fr 1.4fr;gap:36px;}
+  .share-grid .intro h2{font-size:28px;max-width:14ch;}
+  .share-grid .intro p{color:var(--ink-soft);font-size:14.5px;margin-top:12px;max-width:32ch;}
+  .card-form{
+    background:var(--paper-card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:26px 28px;box-shadow:var(--shadow);
+  }
+  .field{margin-bottom:16px;}
+  .field label{display:block;font-family:'Space Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-soft);margin-bottom:6px;}
+  .field input, .field select, .field textarea{
+    width:100%;padding:10px 12px;border:1.3px solid var(--line);border-radius:var(--radius);
+    font-family:'Work Sans';font-size:14.5px;background:#fff;color:var(--ink);
+  }
+  .field textarea{min-height:130px;resize:vertical;font-family:'Work Sans';line-height:1.6;}
+  .field-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .form-note{font-size:12px;color:#8a9184;margin-top:2px;}
+  .submit-row{display:flex;align-items:center;gap:14px;margin-top:6px;}
+  .status-msg{font-size:13px;font-family:'Space Mono',monospace;}
+  .status-msg.ok{color:var(--forest);}
+  .status-msg.err{color:#8B4226;}
+  .rules-box{
+    background:#FBF1DD;border:1px solid var(--gold);border-left:4px solid var(--gold);
+    border-radius:var(--radius);padding:22px 26px;margin-bottom:28px;
+  }
+  .rules-box h3{font-size:18px;margin-bottom:10px;}
+  .rules-box ol{margin:0;padding-left:22px;font-size:13.8px;color:var(--ink-soft);line-height:1.75;}
+  .rules-box li{margin-bottom:4px;}
+  .rules-box li strong{color:var(--ink);}
+  .agree-field{
+    display:flex;align-items:flex-start;gap:10px;margin-bottom:16px;font-size:13.5px;color:var(--ink-soft);
+  }
+  .agree-field input{width:auto;margin-top:3px;flex-shrink:0;}
+
+  /* ---------- modal ---------- */
+  .modal-overlay{
+    position:fixed;inset:0;background:rgba(20,24,18,0.55);
+    display:flex;align-items:center;justify-content:center;padding:24px;z-index:50;
+  }
+  .modal{
+    background:#FBFAF3;max-width:640px;width:100%;max-height:85vh;overflow-y:auto;
+    border-radius:var(--radius);box-shadow:0 20px 50px rgba(0,0,0,0.3);
+    position:relative;
+    background-image: repeating-linear-gradient(to bottom, transparent 0 34px, #DCE6EC 34px 35px);
+    border-left:3px solid #B33A3A;
+  }
+  .modal-inner{padding:34px 34px 30px 40px;}
+  .modal-close{
+    position:absolute;top:14px;right:16px;background:none;border:none;font-size:22px;color:var(--ink-soft);
+    line-height:1;padding:6px;z-index:2;
+  }
+  .modal .tag-row{margin-bottom:14px;}
+  .modal h2{font-size:24px;margin-bottom:6px;line-height:1.25;}
+  .modal .modal-meta{font-family:'Space Mono',monospace;font-size:12px;color:#8a9184;margin-bottom:18px;}
+  .modal .modal-content{white-space:pre-wrap;font-size:15px;color:var(--ink);line-height:1.85;}
+  .modal-actions{display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-top:20px;}
+
+  .loading-row{padding:60px 0;text-align:center;color:var(--ink-soft);font-family:'Space Mono',monospace;font-size:13px;}
+  .banner{
+    background:#F6E7DD;border:1px solid #D9B79A;color:#5C3822;padding:12px 16px;border-radius:var(--radius);
+    font-size:13.5px;margin-bottom:18px;display:flex;justify-content:space-between;gap:12px;align-items:center;
+  }
+  .banner button{background:none;border:none;text-decoration:underline;font-weight:600;color:#5C3822;font-size:13px;}
+
+  /* ---------- upload history ---------- */
+  .history-section{margin-top:70px;padding-top:34px;border-top:1px solid var(--line);}
+  .history-section h2{font-size:22px;margin-bottom:6px;}
+  .history-section p.sub{color:var(--ink-soft);font-size:13.5px;margin-bottom:16px;}
+  .history-list{
+    list-style:none;margin:0;padding:0;max-height:320px;overflow-y:auto;
+    background:var(--paper-card);border:1px solid var(--line);border-radius:var(--radius);
+  }
+  .history-list li{padding:11px 18px;border-bottom:1px dashed var(--line);font-size:13.5px;}
+  .history-list li:last-child{border-bottom:none;}
+
+  footer{
+    background:var(--forest-dark);color:#CFD8CC;padding:34px 24px;margin-top:60px;
+  }
+  .footer-inner{max-width:1120px;margin:0 auto;font-size:12.5px;display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;}
+  .footer-inner .mono{color:#9FB0A2;}
+
+  @media (max-width:860px){
+    .hero-grid{grid-template-columns:1fr;}
+    .stack{display:none;}
+    .grid{grid-template-columns:1fr 1fr;}
+    .share-grid{grid-template-columns:1fr;}
+    .field-row{grid-template-columns:1fr;}
+  }
+  @media (max-width:560px){
+    .grid{grid-template-columns:1fr;}
+    nav{gap:14px;}
+  }
+  @media (prefers-reduced-motion: reduce){
+    *{transition:none !important;animation:none !important;}
+  }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-inner">
+    <div class="brand">
+      <div class="seal">BCC</div>
+      <div class="brand-text">
+        <div class="school-name">Bago City College</div>
+        <div class="school-sub">Notes Exchange</div>
+      </div>
+    </div>
+    <nav>
+      <button class="navlink active" data-view="browse">Browse</button>
+      <button class="navlink" data-view="share">Share a Note</button>
+      <span class="est mono">Est. 1980 · Bago City, Negros Occidental</span>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+  <section class="hero" id="hero">
+    <div class="hero-grid">
+      <div>
+        <h1>Small Notes.<br><em>Big Dreams.</em></h1>
+        <p class="lede">A shelf built by J.A, for Bago City College Students. Post reviewers, module summaries, and case digests. Browse what your batchmates have shared, and download PDFs, Word docs, slides, and images from every year level and block.</p>
+        <div class="hero-actions">
+          <button class="btn btn-primary" id="hero-share-btn">Share your notes</button>
+          <button class="btn btn-ghost" id="hero-browse-btn">Browse the shelf</button>
+        </div>
+      </div>
+      <div class="stack" aria-hidden="true">
+        <div class="mini-card"><span class="tag" style="color:#4C6B8A">1ST YEAR · MODULE</span><h4>Child &amp; Adolescent Learners</h4><div class="lines"><span></span><span></span><span></span></div></div>
+        <div class="mini-card"><span class="tag" style="color:#2E7D6B">2ND YEAR · REVIEWER</span><h4>Database ERD Cheat Sheet</h4><div class="lines"><span></span><span></span><span></span></div></div>
+        <div class="mini-card"><span class="tag" style="color:#8B4226">3RD YEAR · DIGEST</span><h4>Criminal Law Book 1</h4><div class="lines"><span></span><span></span><span></span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="browse-view">
+    <div class="toolbar">
+      <div class="search-wrap">
+        <label for="search-input">Search the shelf</label>
+        <input id="search-input" type="text" placeholder="Try “constitution”, “ERD”, or a subject...">
+      </div>
+      <button type="button" class="filters-toggle" id="filters-toggle">Filters & Sort <span class="chevron">▾</span></button>
+      <span class="mono" id="note-total" style="font-size:12px;color:#8a9184;"></span>
+    </div>
+
+    <div class="filters-panel" id="filters-panel">
+      <div class="filters-panel-inner">
+        <div class="filter-block">
+          <span class="filter-label mono">Sort by</span>
+          <select id="sort-select" class="sort-select">
+            <option value="newest">Newest first</option>
+            <option value="likes">Most liked</option>
+            <option value="views">Most viewed</option>
+            <option value="downloads">Most downloaded</option>
+          </select>
+        </div>
+
+        <div class="filter-block">
+          <span class="filter-label mono">Year level</span>
+          <div class="tabs" id="year-tabs"></div>
+        </div>
+
+        <div class="filter-block">
+          <span class="filter-label mono">Course</span>
+          <div class="tabs" id="course-tabs"></div>
+        </div>
+
+        <div class="filter-block">
+          <span class="filter-label mono">Subject</span>
+          <div class="tabs" id="tabs"></div>
+        </div>
+
+        <div class="filter-block" style="padding-bottom:20px;">
+          <span class="filter-label mono">File type</span>
+          <div class="tabs" id="type-tabs"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="banner-slot" style="margin-top:24px;"></div>
+    <div class="grid" id="notes-grid">
+      <div class="loading-row">loading the shelf…</div>
+    </div>
+  </section>
+
+  <section class="share-section" id="share-view">
+    <div class="rules-box">
+      <h3>📋 Rules & Regulations</h3>
+      <ol>
+        <li><strong>Keep it study-related.</strong> Only post reviewers, notes, summaries, digests, or links to real course material.</li>
+        <li><strong>No profanity, slurs, or hate speech.</strong> Posts with offensive or discriminatory language will be removed.</li>
+        <li><strong>No personal attacks or harassment.</strong> Don't call out, insult, or target any student, teacher, or staff member.</li>
+        <li><strong>No spam, ads, or unrelated links.</strong> Keep posts focused on academics — no promotions or junk content.</li>
+        <li><strong>Give credit where it's due.</strong> Don't claim someone else's notes as entirely your own.</li>
+        <li><strong>Attachment links must be safe and relevant.</strong> No phishing links, malware, or content unrelated to your notes.</li>
+        <li><strong>No duplicate posts.</strong> Check the shelf before posting — the system will also flag likely duplicates.</li>
+        <li><strong>Everything here is public.</strong> Anything you post is visible to every classmate who opens this page.</li>
+        <li><strong>Violations get removed.</strong> Posts that break these rules will be taken down without notice.</li>
+      </ol>
+    </div>
+    <div class="share-grid">
+      <div class="intro">
+        <h2>Pin something to the shelf.</h2>
+        <p>Anything you post here is visible to every classmate who opens this page — so skip the personal stuff and keep it study-worthy.</p>
+      </div>
+      <form class="card-form" id="note-form">
+        <div class="field-row">
+          <div class="field">
+            <label for="f-title">Title</label>
+            <input id="f-title" type="text" required maxlength="120" placeholder="e.g. Midterm Reviewer: Phil. Constitution">
+          </div>
+          <div class="field">
+            <label for="f-subject">Subject</label>
+            <input id="f-subject" type="text" required maxlength="60" placeholder="e.g. Criminology, Filipino, Anatomy..." list="subject-suggestions">
+            <datalist id="subject-suggestions"></datalist>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="f-year">Year level</label>
+            <select id="f-year" required>
+              <option value="" disabled selected>Choose your year level</option>
+              <option value="1st Year">1st Year</option>
+              <option value="2nd Year">2nd Year</option>
+              <option value="3rd Year">3rd Year</option>
+              <option value="4th Year">4th Year</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="f-course">Course</label>
+            <select id="f-course" required>
+              <option value="" disabled selected>Choose your course</option>
+              <option value="AB English">AB English</option>
+              <option value="AB History">AB History</option>
+              <option value="BEEd">BEEd</option>
+              <option value="BPEd">BPEd</option>
+              <option value="BSCrim">BSCrim</option>
+              <option value="BSIS">BSIS</option>
+              <option value="BSOA">BSOA</option>
+              <option value="BSEd-Filipino">BSEd-Filipino</option>
+              <option value="BSEd-Math">BSEd-Math</option>
+              <option value="BSEd-SocStud">BSEd-SocStud</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label for="f-block">Block / Section (optional)</label>
+          <input id="f-block" type="text" maxlength="30" placeholder="e.g. 2A">
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="f-author">Your name</label>
+            <input id="f-author" type="text" required maxlength="60" placeholder="e.g. Cristina D., BSED-3A">
+          </div>
+          <div class="field">
+            <label for="f-pin">Set a delete PIN</label>
+            <input id="f-pin" type="text" required minlength="4" maxlength="20" placeholder="e.g. 4–20 characters">
+            <div class="form-note">Remember this exactly — you'll need it later if you want to delete this note. There are no accounts, so this PIN is the only proof it's yours.</div>
+          </div>
+        </div>
+        <div class="field">
+          <label for="f-content">Notes</label>
+          <textarea id="f-content" required maxlength="6000" placeholder="Paste your reviewer, summary, or digest here..."></textarea>
+          <div class="form-note">Plain text only — up to about 6,000 characters.</div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="f-doctype">Attachment type</label>
+            <select id="f-doctype">
+              <option value="">No attachment</option>
+              <option value="PDF">PDF</option>
+              <option value="DOCX">Word document (DOCX)</option>
+              <option value="PPTX">PowerPoint (PPTX)</option>
+              <option value="Image">Image</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="f-doc">Attachment link (optional)</label>
+            <input id="f-doc" type="text" maxlength="500" placeholder="Paste a Google Drive/Dropbox link">
+          </div>
+        </div>
+        <div class="form-note" style="margin-top:-8px;margin-bottom:18px;">Upload your file to Google Drive first, turn on "Anyone with the link can view," then paste that link here. Choose the matching attachment type so it sorts correctly.</div>
+        <label class="agree-field" for="f-agree">
+          <input id="f-agree" type="checkbox" required>
+          <span>I've read the Rules & Regulations above and agree to follow them.</span>
+        </label>
+        <div class="submit-row">
+          <button type="submit" class="btn btn-primary" id="submit-btn">Post it to the shelf</button>
+          <span class="status-msg" id="form-status"></span>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <section class="history-section">
+    <h2>📜 Upload history</h2>
+    <p class="sub">A running log of who has posted to the shelf, most recent first.</p>
+    <ol class="history-list" id="history-list"></ol>
+  </section>
+
+</main>
+
+<div id="modal-root"></div>
+
+<footer>
+  <div class="footer-inner">
+    <div>
+      <div>Student-run resource — not the official Bago City College website.</div>
+      <div class="mono" style="margin-top:6px;">Rafael Salas Drive, Brgy. Balingasag, Bago City, Negros Occidental</div>
+    </div>
+    <div class="mono">Notes are shared publicly with everyone who opens this page.<br>Built by J.A · 1st Year IS</div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  // No preset subject list — subjects are whatever students type in when they post.
+  const COLOR_PALETTE = ['#4C6B8A','#8B4226','#2E7D6B','#A6763A','#7A5C6B','#8C8B5E','#5B7A8C','#96603D','#3E7A55','#7A5C3E'];
+  const YEAR_LEVELS = ['1st Year','2nd Year','3rd Year','4th Year'];
+  const YEAR_COLORS = { '1st Year':'#4C6B8A', '2nd Year':'#2E7D6B', '3rd Year':'#A6763A', '4th Year':'#8B4226' };
+  const DOC_TYPES = ['PDF','DOCX','PPTX','Image'];
+  const TYPE_COLORS = { PDF:'#B33A3A', DOCX:'#4C6B8A', PPTX:'#C99A2E', Image:'#2E7D6B' };
+  const TYPE_ICONS = { PDF:'📄', DOCX:'📝', PPTX:'📊', Image:'🖼' };
+  const COURSES = ['AB English','AB History','BEEd','BPEd','BSCrim','BSIS','BSOA','BSEd-Filipino','BSEd-Math','BSEd-SocStud'];
+  const COURSE_COLORS = {
+    'AB English':'#5B7A8C', 'AB History':'#96603D', 'BEEd':'#4C6B8A', 'BPEd':'#3E7A55',
+    'BSCrim':'#8B4226', 'BSIS':'#7A5C3E', 'BSOA':'#7A5C6B',
+    'BSEd-Filipino':'#A6763A', 'BSEd-Math':'#2E7D6B', 'BSEd-SocStud':'#8C8B5E'
+  };
+
+  // ---------------------------------------------------------------
+  // FIREBASE SETUP — replace the values below with YOUR project's
+  // config (Firebase console → Project settings → Your apps → Web app).
+  // ---------------------------------------------------------------
+  const firebaseConfig = {
+    apiKey: "AIzaSyBk8ntX8uzzB2C_2ClFi1S8bsBX1J7RdVc",
+    authDomain: "bcc-notes.firebaseapp.com",
+    projectId: "bcc-notes",
+    storageBucket: "bcc-notes.firebasestorage.app",
+    messagingSenderId: "626891646621",
+    appId: "1:626891646621:web:ef4fe1928d4bac66279674"
+  };
+  let firebaseReady = false;
+  let notesCollection = null;
+  function initFirebase(){
+    try{
+      if (!firebaseConfig.apiKey || firebaseConfig.apiKey === 'YOUR_API_KEY'){
+        throw new Error('Firebase config still has placeholder values — replace them with your real project config.');
+      }
+      if (typeof firebase === 'undefined'){
+        throw new Error('Firebase SDK did not load (check your internet connection or an ad-blocker).');
+      }
+      firebase.initializeApp(firebaseConfig);
+      notesCollection = firebase.firestore().collection('notes');
+      firebaseReady = true;
+    }catch(e){
+      console.error('Firebase init failed:', e.message);
+      firebaseReady = false;
+    }
+  }
+  initFirebase();
+
+  // Basic first-line filter for obviously inappropriate language (English + common Filipino/Hiligaynon terms).
+  // This is NOT comprehensive — it's a light deterrent, not real moderation.
+  const BLOCKED_WORDS = [
+    'fuck','shit','bitch','asshole','bastard','slut','whore',
+    'putang ina','putangina','tangina','tang ina','gago','gaga','ulol','bobo','tarantado','hayop ka','punyeta'
+  ];
+  function containsBlockedWords(text){
+    const lower = (text || '').toLowerCase();
+    return BLOCKED_WORDS.some(w => lower.includes(w));
+  }
+
+  // Liked notes are tracked only in memory for this visit — they reset on page reload.
+  const likedIds = new Set();
+
+  const colorCache = {};
+  function colorForSubject(subject){
+    const key = subject.trim().toLowerCase();
+    if (colorCache[key]) return colorCache[key];
+    let hash = 0;
+    for (let i=0;i<key.length;i++){ hash = (hash * 31 + key.charCodeAt(i)) >>> 0; }
+    const color = COLOR_PALETTE[hash % COLOR_PALETTE.length];
+    colorCache[key] = color;
+    return color;
+  }
+  function colorForYear(year){ return YEAR_COLORS[year] || '#7A93A8'; }
+  function colorForType(type){ return TYPE_COLORS[type] || '#7A93A8'; }
+  function colorForCourse(course){ return COURSE_COLORS[course] || '#7A93A8'; }
+
+  // Backward-compatible readers: older notes only had a "pdfUrl" field with no explicit type.
+  function getDocUrl(n){ return n.docUrl || n.pdfUrl || ''; }
+  function getDocType(n){ return n.docType || (n.pdfUrl ? 'PDF' : ''); }
+
+  function driveDownloadUrl(url){
+    if (!url) return url;
+    let m = url.match(/drive\.google\.com\/file\/d\/([^/?]+)/);
+    if (m && m[1]) return 'https://drive.google.com/uc?export=download&id=' + m[1];
+    m = url.match(/[?&]id=([^&]+)/);
+    if (m && m[1]) return 'https://drive.google.com/uc?export=download&id=' + m[1];
+    return url; // not a recognizable Drive link — best effort, may just open instead of downloading
+  }
+
+  const SEED_NOTES = [
+    {
+      id:'seed-1', subject:'General Education', yearLevel:'1st Year', title:'Midterm Reviewer: Philippine Constitution',
+      author:'Cristina D.', course:'BSOA', block:'2A', deletePin:'', docType:'', docUrl:'', likes:0, views:0, downloads:0,
+      content:'Article II — State Policies (key sections to memorize)\n\nSection 1: Sovereignty resides in the people.\nSection 2: The Philippines renounces war as an instrument of policy.\nSection 5: Maintenance of peace and order.\n\nTip: The board loves matching-type items on Article II. Read it twice, then quiz yourself with the section numbers covered instead of the text.',
+      date:'2026-06-14'
+    },
+    {
+      id:'seed-2', subject:'Education', yearLevel:'2nd Year', title:'Child & Adolescent Learners — Module 3 Summary',
+      author:'Ryan A.', course:'BEEd', block:'2A', deletePin:'', docType:'', docUrl:'', likes:0, views:0, downloads:0,
+      content:'Piaget\'s Stages (condensed)\n\n1. Sensorimotor (0-2): learning through senses & movement.\n2. Preoperational (2-7): symbolic thinking, but egocentric.\n3. Concrete Operational (7-11): logical thinking about concrete events.\n4. Formal Operational (11+): abstract reasoning.\n\nUse this alongside Vygotsky\'s Zone of Proximal Development for the finals — professors like to compare the two theorists in essay questions.',
+      date:'2026-06-10'
+    },
+    {
+      id:'seed-3', subject:'Criminology', yearLevel:'3rd Year', title:'Criminal Law Book 1 — Case Digests (Batch 1)',
+      author:'Melvin P.', course:'BSCrim', block:'3B', deletePin:'', docType:'', docUrl:'', likes:0, views:0, downloads:0,
+      content:'People vs. Doe (hypothetical teaching case)\n\nFacts: Condensed for review purposes.\nIssue: Whether intent (dolo) was sufficiently established.\nRuling: Intent may be inferred from the acts of the accused before, during, and after the commission of the offense.\n\nDoctrine to remember: Criminal intent is a state of mind, proven by overt acts, not assumed from the result alone.',
+      date:'2026-06-02'
+    },
+    {
+      id:'seed-4', subject:'Information System', yearLevel:'2nd Year', title:'Database Systems — ERD Cheat Sheet',
+      author:'Justin E.', course:'BSIS', block:'2B', deletePin:'', docType:'', docUrl:'', likes:0, views:0, downloads:0,
+      content:'Entity-Relationship quick reference\n\n- Entity: a table (noun) — e.g. Student, Course.\n- Attribute: a column — e.g. student_id, name.\n- Relationship: verb connecting entities — e.g. Student "enrolls in" Course.\n- Cardinality: 1:1, 1:N, M:N — draw crow\'s foot notation for M:N.\n\nCommon mistake: forgetting the junction/bridge table for many-to-many relationships. Always normalize to at least 3NF before submitting your ERD.',
+      date:'2026-05-28'
+    },
+  ];
+
+  let notesCache = null;
+  let activeSubject = 'ALL';
+  let activeYear = 'ALL';
+  let activeType = 'ALL';
+  let activeCourse = 'ALL';
+  let sortBy = 'newest';
+  let searchTerm = '';
+
+  const $ = (sel) => document.querySelector(sel);
+  const grid = $('#notes-grid');
+  const tabsEl = $('#tabs');
+  const yearTabsEl = $('#year-tabs');
+  const typeTabsEl = $('#type-tabs');
+  const courseTabsEl = $('#course-tabs');
+  const bannerSlot = $('#banner-slot');
+  const totalEl = $('#note-total');
+
+  function escapeHtml(str){
+    return (str || '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+  function subjectInfo(subject){
+    return { code: subject, name: subject, color: colorForSubject(subject) };
+  }
+  function distinctSubjects(){
+    const seen = new Map();
+    (notesCache || []).forEach(n => {
+      const key = (n.subject || '').trim();
+      if (key && !seen.has(key.toLowerCase())) seen.set(key.toLowerCase(), key);
+    });
+    return Array.from(seen.values()).sort((a,b) => a.localeCompare(b));
+  }
+  function formatDate(iso){
+    try{
+      const d = new Date(iso + 'T00:00:00');
+      return d.toLocaleDateString('en-PH', { month:'short', day:'numeric', year:'numeric' });
+    }catch(e){ return iso; }
+  }
+  function normalizeUrl(url){
+    if (!url) return '';
+    if (!/^https?:\/\//i.test(url)) return 'https://' + url;
+    return url;
+  }
+  function findDuplicateNote(note){
+    const titleNorm = note.title.trim().toLowerCase();
+    return (notesCache || []).find(n =>
+      n.title.trim().toLowerCase() === titleNorm ||
+      (note.docUrl && getDocUrl(n) && getDocUrl(n) === note.docUrl)
+    );
+  }
+
+  function renderYearTabs(){
+    const counts = { ALL: notesCache ? notesCache.length : 0 };
+    YEAR_LEVELS.forEach(y => { counts[y] = (notesCache || []).filter(n => n.yearLevel === y).length; });
+    const allTab = `<button class="tab ${activeYear==='ALL'?'active':''}" style="background:#1F4B3F" data-year="ALL">ALL <span class="count">${counts.ALL}</span></button>`;
+    const rest = YEAR_LEVELS.map(y => `<button class="tab ${activeYear===y?'active':''}" style="background:${colorForYear(y)}" data-year="${y}">${y} <span class="count">${counts[y]||0}</span></button>`).join('');
+    yearTabsEl.innerHTML = allTab + rest;
+    yearTabsEl.querySelectorAll('.tab').forEach(btn => {
+      btn.addEventListener('click', () => { activeYear = btn.dataset.year; renderYearTabs(); renderGrid(); });
+    });
+  }
+
+  function renderTabs(){
+    const subjects = distinctSubjects();
+    const counts = { ALL: notesCache ? notesCache.length : 0 };
+    subjects.forEach(s => {
+      counts[s] = (notesCache || []).filter(n => (n.subject||'').trim().toLowerCase() === s.toLowerCase()).length;
+    });
+    if (activeSubject !== 'ALL' && !subjects.some(s => s.toLowerCase() === activeSubject.toLowerCase())){
+      activeSubject = 'ALL';
+    }
+    const allTab = `<button class="tab ${activeSubject==='ALL'?'active':''}" style="background:#1F4B3F" data-subject="ALL">ALL <span class="count">${counts.ALL}</span></button>`;
+    const rest = subjects.map(s => `<button class="tab ${activeSubject.toLowerCase()===s.toLowerCase()?'active':''}" style="background:${colorForSubject(s)}" data-subject="${escapeHtml(s)}">${escapeHtml(s)} <span class="count">${counts[s]||0}</span></button>`).join('');
+    tabsEl.innerHTML = allTab + (subjects.length ? rest : '');
+    tabsEl.querySelectorAll('.tab').forEach(btn => {
+      btn.addEventListener('click', () => { activeSubject = btn.dataset.subject; renderTabs(); renderGrid(); });
+    });
+  }
+
+  function renderTypeTabs(){
+    const counts = { ALL: notesCache ? notesCache.length : 0 };
+    DOC_TYPES.forEach(t => { counts[t] = (notesCache || []).filter(n => getDocType(n) === t).length; });
+    const allTab = `<button class="tab ${activeType==='ALL'?'active':''}" style="background:#1F4B3F" data-type="ALL">ALL <span class="count">${counts.ALL}</span></button>`;
+    const rest = DOC_TYPES.map(t => `<button class="tab ${activeType===t?'active':''}" style="background:${colorForType(t)}" data-type="${t}">${TYPE_ICONS[t]} ${t} <span class="count">${counts[t]||0}</span></button>`).join('');
+    typeTabsEl.innerHTML = allTab + rest;
+    typeTabsEl.querySelectorAll('.tab').forEach(btn => {
+      btn.addEventListener('click', () => { activeType = btn.dataset.type; renderTypeTabs(); renderGrid(); });
+    });
+  }
+
+  function renderCourseTabs(){
+    const counts = { ALL: notesCache ? notesCache.length : 0 };
+    const coursesInUse = COURSES.filter(c => (notesCache || []).some(n => n.course === c));
+    coursesInUse.forEach(c => { counts[c] = (notesCache || []).filter(n => n.course === c).length; });
+    if (activeCourse !== 'ALL' && !coursesInUse.includes(activeCourse)) activeCourse = 'ALL';
+    const allTab = `<button class="tab ${activeCourse==='ALL'?'active':''}" style="background:#1F4B3F" data-course="ALL">ALL <span class="count">${counts.ALL}</span></button>`;
+    const rest = coursesInUse.map(c => `<button class="tab ${activeCourse===c?'active':''}" style="background:${colorForCourse(c)}" data-course="${escapeHtml(c)}">${escapeHtml(c)} <span class="count">${counts[c]||0}</span></button>`).join('');
+    courseTabsEl.innerHTML = allTab + rest;
+    courseTabsEl.querySelectorAll('.tab').forEach(btn => {
+      btn.addEventListener('click', () => { activeCourse = btn.dataset.course; renderCourseTabs(); renderGrid(); });
+    });
+  }
+
+  function renderHistory(){
+    const el = $('#history-list');
+    if (!el) return;
+    const sorted = (notesCache || []).slice().sort((a,b) => (b.date||'').localeCompare(a.date||''));
+    if (sorted.length === 0){
+      el.innerHTML = '<li class="mono" style="color:#8a9184;">No uploads yet — be the first!</li>';
+      return;
+    }
+    el.innerHTML = sorted.map(n =>
+      `<li><span class="mono" style="color:#8a9184;">${formatDate(n.date)}</span> — <strong>${escapeHtml(n.author)}</strong> posted "${escapeHtml(n.title)}"${n.yearLevel ? ' (' + escapeHtml(n.yearLevel) + ')' : ''}</li>`
+    ).join('');
+  }
+
+  function renderGrid(){
+    if (!notesCache){
+      grid.innerHTML = '<div class="loading-row">loading the shelf…</div>';
+      return;
+    }
+    let list = notesCache.slice();
+
+    if (activeSubject !== 'ALL') list = list.filter(n => (n.subject||'').trim().toLowerCase() === activeSubject.toLowerCase());
+    if (activeYear !== 'ALL') list = list.filter(n => n.yearLevel === activeYear);
+    if (activeType !== 'ALL') list = list.filter(n => getDocType(n) === activeType);
+    if (activeCourse !== 'ALL') list = list.filter(n => n.course === activeCourse);
+    if (searchTerm.trim()){
+      const t = searchTerm.trim().toLowerCase();
+      list = list.filter(n =>
+        n.title.toLowerCase().includes(t) ||
+        n.content.toLowerCase().includes(t) ||
+        n.author.toLowerCase().includes(t) ||
+        (n.subject||'').toLowerCase().includes(t)
+      );
+    }
+
+    if (sortBy === 'likes') list.sort((a,b) => (b.likes||0) - (a.likes||0));
+    else if (sortBy === 'views') list.sort((a,b) => (b.views||0) - (a.views||0));
+    else if (sortBy === 'downloads') list.sort((a,b) => (b.downloads||0) - (a.downloads||0));
+    else list.sort((a,b) => (b.date||'').localeCompare(a.date||''));
+
+    totalEl.textContent = list.length + (list.length === 1 ? ' note' : ' notes') + ' on the shelf';
+
+    if (list.length === 0){
+      grid.innerHTML = `<div class="empty-state"><h3>Nothing here yet.</h3>Be the first to pin a note for this filter.</div>`;
+      return;
+    }
+
+    grid.innerHTML = list.map(n => {
+      const s = subjectInfo(n.subject);
+      const docUrl = getDocUrl(n);
+      const docType = getDocType(n);
+      const snippet = escapeHtml(n.content).slice(0, 220);
+      return `
+        <article class="note-card" data-id="${n.id}">
+          <div class="strip" style="background:${s.color}"></div>
+          <div class="body">
+            <div class="tag-row">
+              <span class="subject-tag" style="background:${s.color}">${escapeHtml(s.code)}</span>
+              ${n.yearLevel ? `<span class="subject-tag" style="background:${colorForYear(n.yearLevel)}">${escapeHtml(n.yearLevel)}</span>` : ''}
+              ${n.course ? `<span class="subject-tag" style="background:${colorForCourse(n.course)}">${escapeHtml(n.course)}</span>` : ''}
+              ${docType ? `<span class="subject-tag" style="background:${colorForType(docType)}">${TYPE_ICONS[docType]} ${docType}</span>` : ''}
+            </div>
+            <h3>${escapeHtml(n.title)}</h3>
+            <p class="snippet">${snippet}</p>
+            <div class="stats-row">
+              <span>❤ ${n.likes||0}</span>
+              <span>👁 ${n.views||0}</span>
+              <span>⬇ ${n.downloads||0}</span>
+            </div>
+            <div class="meta">
+              <span>${escapeHtml(n.author)}${n.block ? ' · ' + escapeHtml(n.block) : ''}</span>
+              <span>${formatDate(n.date)}</span>
+            </div>
+            <div class="card-actions">
+              <button class="open-btn" data-id="${n.id}">Read note →</button>
+              <button class="like-btn" data-id="${n.id}">❤ Like</button>
+              ${docUrl ? `<a href="${escapeHtml(docUrl)}" target="_blank" rel="noopener noreferrer" class="open-btn">👀 View</a>` : ''}
+              ${docUrl ? `<button class="download-btn" data-id="${n.id}">⬇ Download</button>` : ''}
+              <button class="delete-btn" data-id="${n.id}">🗑 Delete</button>
+            </div>
+          </div>
+        </article>`;
+    }).join('');
+
+    grid.querySelectorAll('.open-btn[data-id]').forEach(btn => {
+      btn.addEventListener('click', () => openModal(btn.dataset.id));
+    });
+    grid.querySelectorAll('.like-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => { e.stopPropagation(); await handleLike(btn.dataset.id); });
+    });
+    grid.querySelectorAll('.download-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => { e.stopPropagation(); await handleDownload(btn.dataset.id); });
+    });
+    grid.querySelectorAll('.delete-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => { e.stopPropagation(); await deleteNote(btn.dataset.id); });
+    });
+  }
+
+  async function handleLike(id){
+    if (likedIds.has(id)){
+      alert('You already liked this note this visit.');
+      return;
+    }
+    if (!firebaseReady) return;
+    try{
+      await notesCollection.doc(id).update({ likes: firebase.firestore.FieldValue.increment(1) });
+      likedIds.add(id);
+    }catch(e){
+      console.error('Like failed:', e);
+      alert('Could not like this note — check your connection and try again.');
+    }
+  }
+
+  async function handleDownload(id){
+    const note = notesCache.find(n => n.id === id);
+    if (!note) return;
+    const url = getDocUrl(note);
+    if (!url) return;
+    if (firebaseReady){
+      try{ await notesCollection.doc(id).update({ downloads: firebase.firestore.FieldValue.increment(1) }); }
+      catch(e){ console.error('Download counter failed:', e); }
+    }
+    window.open(driveDownloadUrl(url), '_blank', 'noopener,noreferrer');
+  }
+
+  async function deleteNote(id){
+    const note = notesCache.find(n => n.id === id);
+    if (!note) return false;
+    if (note.deletePin){
+      const pin = window.prompt('Enter the delete PIN you set when you posted "' + note.title + '":');
+      if (pin === null) return false;
+      if (pin !== note.deletePin){
+        alert('Incorrect PIN — this note was not deleted.');
+        return false;
+      }
+    } else {
+      const confirmed = window.confirm('This note was posted before delete PINs existed, so there\u2019s no PIN to check. Delete "' + note.title + '" anyway?');
+      if (!confirmed) return false;
+    }
+    if (!firebaseReady){
+      alert('The database isn\u2019t connected right now — try again later.');
+      return false;
+    }
+    try{
+      await notesCollection.doc(id).delete();
+      return true;
+    }catch(e){
+      console.error('Delete failed:', e);
+      if (e && e.code === 'permission-denied'){
+        alert('Delete was blocked by the database\'s security rules (permission-denied). The site owner needs to update the Firestore Rules to allow delete.');
+      } else {
+        alert('Could not delete — check your connection and try again. (' + (e && e.message ? e.message : 'unknown error') + ')');
+      }
+      return false;
+    }
+  }
+
+  function openModal(id){
+    const note = notesCache.find(n => n.id === id);
+    if (!note) return;
+    const s = subjectInfo(note.subject);
+    const docUrl = getDocUrl(note);
+    const docType = getDocType(note);
+    const root = $('#modal-root');
+    root.innerHTML = `
+      <div class="modal-overlay" id="overlay">
+        <div class="modal" role="dialog" aria-modal="true" aria-label="${escapeHtml(note.title)}">
+          <button class="modal-close" id="modal-close" aria-label="Close">&times;</button>
+          <div class="modal-inner">
+            <div class="tag-row">
+              <span class="subject-tag" style="background:${s.color}">${escapeHtml(s.name)}</span>
+              ${note.yearLevel ? `<span class="subject-tag" style="background:${colorForYear(note.yearLevel)}">${escapeHtml(note.yearLevel)}</span>` : ''}
+              ${note.course ? `<span class="subject-tag" style="background:${colorForCourse(note.course)}">${escapeHtml(note.course)}</span>` : ''}
+              ${docType ? `<span class="subject-tag" style="background:${colorForType(docType)}">${TYPE_ICONS[docType]} ${docType}</span>` : ''}
+            </div>
+            <h2>${escapeHtml(note.title)}</h2>
+            <div class="modal-meta">${escapeHtml(note.author)}${note.block ? ' · ' + escapeHtml(note.block) : ''} · ${formatDate(note.date)} · ❤ ${note.likes||0} · 👁 ${note.views||0} · ⬇ ${note.downloads||0}</div>
+            <div class="modal-content">${escapeHtml(note.content)}</div>
+            <div class="modal-actions">
+              <button id="modal-like-btn" class="btn btn-ghost">❤ Like</button>
+              ${docUrl ? `<a href="${escapeHtml(docUrl)}" target="_blank" rel="noopener noreferrer" class="btn btn-ghost">👀 View ${docType}</a>` : ''}
+              ${docUrl ? `<button id="modal-download-btn" class="btn btn-ghost">⬇ Download ${docType}</button>` : ''}
+              <button id="modal-delete-btn" class="btn btn-ghost" style="border-color:#8B4226;color:#8B4226;">🗑 Delete this note</button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    const overlay = $('#overlay');
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) closeModal(); });
+    $('#modal-close').addEventListener('click', closeModal);
+    $('#modal-like-btn').addEventListener('click', () => handleLike(note.id));
+    if (docUrl) $('#modal-download-btn').addEventListener('click', () => handleDownload(note.id));
+    $('#modal-delete-btn').addEventListener('click', async () => {
+      const ok = await deleteNote(note.id);
+      if (ok) closeModal();
+    });
+    document.addEventListener('keydown', escListener);
+
+    if (firebaseReady){
+      notesCollection.doc(note.id).update({ views: firebase.firestore.FieldValue.increment(1) }).catch(e => console.error('View counter failed:', e));
+    }
+  }
+  function escListener(e){ if (e.key === 'Escape') closeModal(); }
+  function closeModal(){
+    $('#modal-root').innerHTML = '';
+    document.removeEventListener('keydown', escListener);
+  }
+
+  function showBanner(message){
+    bannerSlot.innerHTML = `<div class="banner"><span>${escapeHtml(message)}</span><button id="retry-btn">Retry</button></div>`;
+    $('#retry-btn').addEventListener('click', () => window.location.reload());
+  }
+  function clearBanner(){ bannerSlot.innerHTML = ''; }
+
+  function renderAll(){
+    renderYearTabs();
+    renderTabs();
+    renderTypeTabs();
+    renderCourseTabs();
+    renderGrid();
+    renderHistory();
+    updateSubjectSuggestions();
+  }
+
+  function startNotesListener(){
+    grid.innerHTML = '<div class="loading-row">loading the shelf…</div>';
+    clearBanner();
+    if (!firebaseReady){
+      notesCache = SEED_NOTES.slice();
+      renderAll();
+      showBanner('This site\u2019s database isn\u2019t connected yet — showing sample notes only. (Site owner: check the Firebase config at the top of the script.)');
+      return;
+    }
+    notesCollection.onSnapshot(
+      (snapshot) => {
+        notesCache = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        clearBanner();
+        renderAll();
+      },
+      (error) => {
+        console.error('Firestore error:', error);
+        if (!notesCache) notesCache = SEED_NOTES.slice();
+        renderAll();
+        showBanner('Could not reach the database — check the Firestore security rules and your connection.');
+      }
+    );
+  }
+
+  async function addNote(note){
+    if (!firebaseReady){
+      return { ok:false, reason:'not-configured' };
+    }
+    try{
+      const { id, ...noteData } = note;
+      await notesCollection.add(noteData);
+      return { ok:true };
+    }catch(e){
+      console.error('Firestore error:', e);
+      return { ok:false, reason:'write-failed' };
+    }
+  }
+
+  function updateSubjectSuggestions(){
+    const list = $('#subject-suggestions');
+    if (!list) return;
+    list.innerHTML = distinctSubjects().map(s => `<option value="${escapeHtml(s)}">`).join('');
+  }
+
+  function switchView(view){
+    document.querySelectorAll('.navlink').forEach(b => b.classList.toggle('active', b.dataset.view === view));
+    $('#browse-view').style.display = view === 'browse' ? '' : 'none';
+    $('#share-view').style.display = view === 'share' ? '' : 'none';
+    window.scrollTo({ top: view === 'share' ? $('#share-view').offsetTop - 20 : 0, behavior:'smooth' });
+  }
+
+  document.querySelectorAll('.navlink').forEach(btn => {
+    btn.addEventListener('click', () => switchView(btn.dataset.view));
+  });
+  $('#hero-share-btn').addEventListener('click', () => switchView('share'));
+  $('#hero-browse-btn').addEventListener('click', () => switchView('browse'));
+
+  $('#search-input').addEventListener('input', (e) => { searchTerm = e.target.value; renderGrid(); });
+  $('#sort-select').addEventListener('change', (e) => { sortBy = e.target.value; renderGrid(); });
+  $('#filters-toggle').addEventListener('click', () => {
+    $('#filters-panel').classList.toggle('open');
+    $('#filters-toggle').classList.toggle('open');
+  });
+
+  $('#note-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const statusEl = $('#form-status');
+    const submitBtn = $('#submit-btn');
+    const docUrl = normalizeUrl($('#f-doc').value.trim());
+    const docType = $('#f-doctype').value;
+    const note = {
+      id: 'n-' + Date.now() + '-' + Math.random().toString(36).slice(2,7),
+      title: $('#f-title').value.trim(),
+      subject: $('#f-subject').value.trim(),
+      yearLevel: $('#f-year').value,
+      author: $('#f-author').value.trim(),
+      course: $('#f-course').value,
+      block: $('#f-block').value.trim(),
+      content: $('#f-content').value.trim(),
+      docType: docUrl ? docType : '',
+      docUrl: docUrl,
+      deletePin: $('#f-pin').value.trim(),
+      likes: 0, views: 0, downloads: 0,
+      date: new Date().toISOString().slice(0,10),
+    };
+
+    if (!note.title || !note.subject || !note.yearLevel || !note.course || !note.author || !note.content || !note.deletePin){
+      statusEl.textContent = 'Please fill in all required fields.';
+      statusEl.className = 'status-msg err';
+      return;
+    }
+    if (docUrl && !docType){
+      statusEl.textContent = 'Please choose an attachment type for your link.';
+      statusEl.className = 'status-msg err';
+      return;
+    }
+    if (containsBlockedWords(note.title + ' ' + note.subject + ' ' + note.author + ' ' + note.content)){
+      statusEl.textContent = 'Please remove inappropriate language before posting — check the Rules & Regulations above.';
+      statusEl.className = 'status-msg err';
+      return;
+    }
+    const dup = findDuplicateNote(note);
+    if (dup){
+      statusEl.textContent = 'This looks like a duplicate of "' + dup.title + '" (by ' + dup.author + ') already on the shelf.';
+      statusEl.className = 'status-msg err';
+      return;
+    }
+
+    submitBtn.disabled = true;
+    statusEl.textContent = 'Posting…';
+    statusEl.className = 'status-msg';
+    const result = await addNote(note);
+    submitBtn.disabled = false;
+    if (result.ok){
+      statusEl.textContent = 'Posted to the shelf ✓';
+      statusEl.className = 'status-msg ok';
+      e.target.reset();
+      setTimeout(() => switchView('browse'), 700);
+    } else if (result.reason === 'not-configured'){
+      statusEl.textContent = 'This site isn\u2019t connected to a database yet — ask the site owner to finish the Firebase setup.';
+      statusEl.className = 'status-msg err';
+    } else {
+      statusEl.textContent = 'Could not save — check your connection and try again.';
+      statusEl.className = 'status-msg err';
+    }
+  });
+
+  // init
+  switchView('browse');
+  startNotesListener();
+})();
+</script>
+</body>
+</html>
